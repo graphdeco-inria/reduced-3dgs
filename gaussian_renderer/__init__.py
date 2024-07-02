@@ -1,10 +1,22 @@
+#
+# Copyright (C) 2023, Inria
+# GRAPHDECO research group, https://team.inria.fr/graphdeco
+# All rights reserved.
+#
+# This software is free for non-commercial, research and evaluation use 
+# under the terms of the LICENSE.md file.
+#
+# For inquiries contact  george.drettakis@inria.fr
+#
+
 import torch
 import math
-from diff_gaussian_rasterization.rasterizer import GaussianRasterizationSettings, GaussianRasterizer
+from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
+from diff_gaussian_rasterization._C import rasterize_gaussians_variableSH_bands
 from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh
 
-def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, override_color = None):
+def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, override_color = None, lambda_sh_sparsity = 0., measure_fps=False, variable_sh_bands=False):
     """
     Render the scene. 
     
@@ -33,14 +45,17 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         projmatrix=viewpoint_camera.full_proj_transform,
         sh_degree=pc.active_sh_degree,
         campos=viewpoint_camera.camera_center,
-        prefiltered=False
+        prefiltered=False,
+        debug=pipe.debug
     )
 
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
 
+    # Copy only relevant data from the scene info to smaller tensors
     means3D = pc.get_xyz
     means2D = screenspace_points
-    opacity = pc.get_opacity
+    opacity = pc._opacity
+    degrees = pc._degrees
 
     # If precomputed 3d covariance is provided, use it. If not, then it will be computed from
     # scaling / rotation by the rasterizer.
@@ -57,7 +72,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     # from SHs in Python, do it. If not, then SH -> RGB conversion will be done by rasterizer.
     shs = None
     colors_precomp = None
-    if colors_precomp is None:
+    if override_color is None:
         if pipe.convert_SHs_python:
             shs_view = pc.get_features.transpose(1, 2).view(-1, 3, (pc.max_sh_degree+1)**2)
             dir_pp = (pc.get_xyz - viewpoint_camera.camera_center.repeat(pc.get_features.shape[0], 1))
@@ -66,24 +81,68 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             colors_precomp = torch.clamp_min(sh2rgb + 0.5, 0.0)
         else:
             shs = pc.get_features
+            if variable_sh_bands:
+                shs = torch.cat([tensor.flatten() for tensor in shs])
     else:
         colors_precomp = override_color
 
-    # Rasterize visible Gaussians to image, obtain their radii (on screen). 
-    rendered_image, radii = rasterizer(
-        means3D = means3D,
-        means2D = means2D,
-        shs = shs,
-        colors_precomp = colors_precomp,
-        opacities = opacity,
-        scales = scales,
-        rotations = rotations,
-        cov3D_precomp = cov3D_precomp)
+
+    per_band_count = torch.tensor(pc.per_band_count, device="cuda", dtype=torch.int)
+    cumsum_count = torch.cumsum(per_band_count,dim=0).to(dtype=torch.int)
+    coeffs_num = torch.tensor([i*i for i in range(1, len(pc.per_band_count) + 1)], device="cuda", dtype=torch.int)
+    # Rasterize visible Gaussians to image, obtain their radii (on screen).
+    fps = 0
+    if measure_fps:
+        start_timer = torch.cuda.Event(enable_timing=True)
+        end_timer = torch.cuda.Event(enable_timing=True)
+        start_timer.record()
+    if variable_sh_bands:
+        _, rendered_image, radii, _, _, _ = rasterize_gaussians_variableSH_bands(
+            raster_settings.bg, 
+            means3D,
+            torch.Tensor([]),
+            opacity,
+            scales,
+            rotations,
+            raster_settings.scale_modifier,
+            torch.Tensor([]),
+            raster_settings.viewmatrix,
+            raster_settings.projmatrix,
+            raster_settings.tanfovx,
+            raster_settings.tanfovy,
+            raster_settings.image_height,
+            raster_settings.image_width,
+            shs,
+            per_band_count,
+            cumsum_count,
+            coeffs_num,
+            degrees,
+            raster_settings.campos,
+            raster_settings.prefiltered,
+            raster_settings.debug
+        )
+    else:
+        rendered_image, radii = rasterizer(
+            means3D = means3D,
+            means2D = means2D,
+            shs = shs,
+            degrees = degrees,
+            colors_precomp = colors_precomp,
+            opacities = opacity,
+            scales = scales,
+            rotations = rotations,
+            cov3D_precomp = cov3D_precomp,
+            lambda_sh_sparsity=lambda_sh_sparsity)
+    if measure_fps:
+        end_timer.record()
+        torch.cuda.synchronize()
+        start_timer.elapsed_time(end_timer)
+        fps = 1 / (start_timer.elapsed_time(end_timer))
 
     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
     # They will be excluded from value updates used in the splitting criteria.
     return {"render": rendered_image,
-            "density_image": density_image,
             "viewspace_points": screenspace_points,
             "visibility_filter" : radii > 0,
-            "radii": radii}
+            "radii": radii,
+            "FPS": fps}
