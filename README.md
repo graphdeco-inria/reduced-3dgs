@@ -2,7 +2,7 @@
 
 # Reducing the Memory Footprint of 3D Gaussian Splatting
 Panagiotis Papantonakis Georgios Kopanas, Bernhard Kerbl, Alexandre Lanvin, George Drettakis<br>
-| [Webpage](https://repo-sam.inria.fr/fungraph/reduced_3dgs/) | [Full Paper](https://repo-sam.inria.fr/fungraph/reduced_3dgs/reduced_3DGS_i3d.pdf) | [Datasets (TODO)](TODO) | [Video]([#](https://youtu.be/EnKE-d7eMds?si=xHW7ZdH1n8mVU5DZ&t=48)) | [Other GRAPHDECO Publications](http://www-sop.inria.fr/reves/publis/gdindex.php) | [FUNGRAPH project page](https://fungraph.inria.fr) | <br>
+| [Webpage](https://repo-sam.inria.fr/fungraph/reduced_3dgs/) | [Full Paper](https://repo-sam.inria.fr/fungraph/reduced_3dgs/reduced_3DGS_i3d.pdf) | [Datasets (TODO)](TODO) | [Video](https://youtu.be/EnKE-d7eMds?si=xWElEPf4JgwOAmbB&t=48) | [Other GRAPHDECO Publications](http://www-sop.inria.fr/reves/publis/gdindex.php) | [FUNGRAPH project page](https://fungraph.inria.fr) | <br>
 ![Teaser image](assets/teaser.jpg)
 
 This repository contains the code of the paper "Reducing the Memory Footprint of 3D Gaussian Splatting", which can be found [here](https://repo-sam.inria.fr/fungraph/reduced_3dgs/).
