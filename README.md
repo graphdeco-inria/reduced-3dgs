@@ -185,7 +185,7 @@ The optimizer uses PyTorch and CUDA extensions in a Python environment to produc
 Our default, provided install method is based on Conda package and environment management:
 ```shell
 SET DISTUTILS_USE_SDK=1 # Windows only
-conda env create --file environment_full.yml
+conda env create --file environment.yml
 conda activate gaussian_splatting
 ```
 Please note that this process assumes that you have CUDA SDK **11** installed, not **12**. For modifications, see below.
