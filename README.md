@@ -328,12 +328,13 @@ python train.py -s <path to COLMAP or NeRF Synthetic dataset> --eval # Train wit
 python render.py -m <path to trained model> # Generate renderings
 python metrics.py -m <path to trained model> # Compute error metrics on renderings
 ```
-<!-- TODO CHANGE THAT -->
+<!-- TODO CHANGE THAT 
 If you want to evaluate our [pre-trained models](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/datasets/pretrained/models.zip), you will have to download the corresponding source data sets and indicate their location to ```render.py``` with an additional ```--source_path/-s``` flag. Note: The pre-trained models were created with the release codebase. This code base has been cleaned up and includes bugfixes, hence the metrics you get from evaluating them will differ from those in the paper.
 ```shell
 python render.py -m <path to pre-trained model> -s <path to COLMAP dataset>
 python metrics.py -m <path to pre-trained model>
 ```
+-->
 
 <details>
 <summary><span style="font-weight: bold;">Command Line Arguments for render.py</span></summary>
@@ -427,8 +428,10 @@ We provide two interactive viewers for our method: remote and real-time. Our vie
 - CMake (recent version, we used 3.24)
 - 7zip (only on Windows)
 
+<!--
 ### Pre-built Windows Binaries
 We provide pre-built binaries for Windows [here](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/binaries/viewers.zip). We recommend using them on Windows for an efficient setup, since the building of SIBR involves several external dependencies that must be downloaded and compiled on-the-fly.
+-->
 
 ### Installation from Source
 If you cloned with submodules (e.g., using ```--recursive```), the source code for the viewers is found in ```SIBR_viewers```. The network viewer runs within the SIBR framework for Image-based Rendering applications.
