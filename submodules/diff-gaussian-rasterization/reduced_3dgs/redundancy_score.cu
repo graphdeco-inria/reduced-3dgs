@@ -144,7 +144,7 @@ __global__ void sphereEllipsoidIntersectionCUDA(
         int neighbour_id = curr_neighbours[i];
         glm::vec3 difference = curr_xyz - means3D[neighbour_id];
         glm::vec3 augmented_neighbour_scales = scales[neighbour_id] + glm::vec3(curr_radius);
-        const glm::mat3 &neighbour_rotation = R[idx];
+        const glm::mat3 &neighbour_rotation = R[neighbour_id];
 
         // Change of basis: x_old = A x_new -> x_new = A^T x_old for orthonormal
         // equivalent to left multiplication
